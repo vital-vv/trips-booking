@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: trips-api
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${KEYCLOAK_URL:http://localhost:8484}/auth/realms/trips/protocol/openid-connect/certs
+
+springdoc:
+  swagger-ui:
+    use-root-path: true
+
+server:
+  servlet:
+    context-path: /trips-api

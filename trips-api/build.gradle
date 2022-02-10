@@ -1,0 +1,85 @@
+plugins {
+  id 'com.palantir.docker' version '0.26.0'
+  id 'org.springframework.boot' version '2.6.3'
+  id 'org.springframework.cloud.contract' version '3.1.0'
+  id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+  id 'jacoco'
+  id 'java'
+}
+
+group = 'com.example.demo'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '17'
+targetCompatibility = '17'
+
+configurations {
+  compileOnly {
+    extendsFrom annotationProcessor
+  }
+}
+
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  annotationProcessor(
+      'org.projectlombok:lombok',
+      "org.mapstruct:mapstruct-processor:$mapstructVersion"
+  )
+  implementation 'org.springframework.boot:spring-boot-starter-actuator'
+  implementation 'org.springframework.boot:spring-boot-starter-web'
+  implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+  implementation 'org.springframework.boot:spring-boot-starter-validation'
+  implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+  implementation 'org.hibernate:hibernate-spatial'
+  implementation "org.springdoc:springdoc-openapi-ui:$springdocOpenapiVersion"
+  implementation "org.mapstruct:mapstruct:$mapstructVersion"
+  runtimeOnly 'com.h2database:h2'
+  testImplementation project(':trips-api-test')
+  testImplementation 'org.springframework.cloud:spring-cloud-starter-contract-verifier'
+  testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+dependencyManagement {
+  imports {
+    mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+  }
+}
+
+contracts {
+  baseClassForTests 'com.example.demo.tripbookingapi.BaseTestClass'
+}
+
+jacocoTestReport {
+  dependsOn test
+  reports {
+    xml.enabled true
+  }
+}
+
+jacocoTestCoverageVerification {
+  violationRules {
+    rule {
+      limit {
+        minimum = 0.8
+      }
+    }
+  }
+}
+
+docker {
+  name 'demo/trips-api'
+  dockerfile rootProject.file('trips-api/src/main/docker/trips-api/Dockerfile')
+  files tasks.bootJar.outputs.files.singleFile
+  buildArgs JAR_FILE: bootJar.archiveFileName.get(), HEALTH_URL: 'localhost:8080/trips-api/actuator/health'
+  dependsOn bootJar
+}
+
+tasks.named('contractTest') {
+  useJUnitPlatform()
+}
+
+tasks.named('test') {
+  useJUnitPlatform()
+}

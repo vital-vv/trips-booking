@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  postgis:
+    image: demo/postgis
+    build: trips-api/src/main/docker/postgis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5432:5432"
+    environment:
+      POSTGRES_DATABASES: keycloak,trip_booking
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "user" ]
+      interval: 5s
+      timeout: 3s
+      retries: 7
+
+  keycloak:
+    image: jboss/keycloak
+    restart: unless-stopped
+    depends_on:
+      - postgis
+    volumes:
+      - ./trips-api/src/main/docker/keycloak:/opt/jboss/keycloak/imports
+    ports:
+      - "127.0.0.1:8484:8080"
+    environment:
+      DB_VENDOR: POSTGRES
+      DB_ADDR: postgis
+      DB_PORT: 5432
+      DB_DATABASE: keycloak
+      DB_USER: user
+      DB_PASSWORD: pass
+      KEYCLOAK_USER: admin
+      KEYCLOAK_PASSWORD: admin_password
+      KEYCLOAK_IMPORT: /opt/jboss/keycloak/imports/trips-realm.json
+
+  trips-api:
+    image: demo/trips-api
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      - keycloak
+    environment:
+      KEYCLOAK_URL: http://keycloak:8080
